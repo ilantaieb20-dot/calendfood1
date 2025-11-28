@@ -73,6 +73,7 @@ export function Dashboard() {
   };
 
   const handleShared = () => {
+    setRefreshKey(prev => prev + 1);
     setCurrentView('social');
   };
 
@@ -149,7 +150,7 @@ export function Dashboard() {
             />
           )}
 
-          {currentView === 'social' && <SocialFeed />}
+          {currentView === 'social' && <SocialFeed key={`social-${refreshKey}`} />}
 
           {currentView === 'stats' && <NutritionStats />}
         </div>

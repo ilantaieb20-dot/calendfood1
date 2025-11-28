@@ -37,10 +37,29 @@ export function SocialFeed() {
   useEffect(() => {
     loadPosts();
     loadUserLikes();
+
+    const channel = supabase
+      .channel('social_posts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'social_posts'
+        },
+        () => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadPosts = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('social_posts')
       .select(`
         *,
@@ -49,7 +68,15 @@ export function SocialFeed() {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (data) setPosts(data);
+    if (error) {
+      console.error('Erreur lors du chargement des posts:', error);
+      return;
+    }
+
+    if (data) {
+      console.log('Posts chargés:', data.length);
+      setPosts(data);
+    }
   };
 
   const loadUserLikes = async () => {
