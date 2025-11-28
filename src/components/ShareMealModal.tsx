@@ -35,7 +35,10 @@ export function ShareMealModal({ meal, onClose, onShared }: ShareMealModalProps)
   const [loading, setLoading] = useState(false);
 
   const handleShare = async () => {
-    if (!user) return;
+    if (!user) {
+      alert('Vous devez être connecté pour partager un repas');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -59,18 +62,25 @@ export function ShareMealModal({ meal, onClose, onShared }: ShareMealModalProps)
         postContent += `\n📊 ${nutritionInfo.join(' • ')}`;
       }
 
-      const { error } = await supabase.from('social_posts').insert({
+      const { data, error } = await supabase.from('social_posts').insert({
         user_id: user.id,
         meal_id: meal.id,
         content: postContent,
         media_url: meal.photo_url,
         media_type: meal.photo_url ? 'photo' : null,
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du partage:', error);
+        alert(`Erreur: ${error.message}`);
+        throw error;
+      }
 
+      console.log('Post créé avec succès:', data);
       onShared();
       onClose();
+    } catch (err) {
+      console.error('Erreur:', err);
     } finally {
       setLoading(false);
     }
