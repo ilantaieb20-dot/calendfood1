@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn } from 'lucide-react';
 
-const DEV_MODE = import.meta.env.DEV;
-
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -117,16 +115,14 @@ export function Auth() {
           </button>
         </div>
 
-        {DEV_MODE && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <button
-              onClick={devBypass}
-              className="w-full bg-gray-600 text-white py-2 rounded-lg font-medium hover:bg-gray-700 transition text-sm"
-            >
-              Mode Dev - Bypass Login
-            </button>
-          </div>
-        )}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={devBypass}
+            className="w-full bg-gray-600 text-white py-2 rounded-lg font-medium hover:bg-gray-700 transition text-sm"
+          >
+            Mode Dev - Bypass Login
+          </button>
+        </div>
       </div>
     </div>
   );
