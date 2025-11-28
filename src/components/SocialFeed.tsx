@@ -185,7 +185,7 @@ export function SocialFeed() {
           )}
 
           <div className="p-4">
-            <p className="text-gray-800 mb-4 leading-relaxed">{post.content}</p>
+            <p className="text-gray-800 mb-4 leading-relaxed whitespace-pre-line">{post.content}</p>
 
             <div className="flex items-center gap-6 mb-4">
               <button
