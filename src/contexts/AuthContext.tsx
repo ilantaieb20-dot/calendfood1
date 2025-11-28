@@ -8,6 +8,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, username: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  devBypass: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,8 +77,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const devBypass = async () => {
+    const devEmail = 'dev@test.com';
+    const devPassword = 'devpass123';
+    const devUsername = 'devuser';
+
+    let { error: signInError } = await supabase.auth.signInWithPassword({
+      email: devEmail,
+      password: devPassword,
+    });
+
+    if (signInError) {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: devEmail,
+        password: devPassword,
+      });
+
+      if (!signUpError && data.user) {
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          username: devUsername,
+          full_name: 'Dev User',
+        });
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, devBypass }}>
       {children}
     </AuthContext.Provider>
   );

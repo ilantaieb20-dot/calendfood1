@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn } from 'lucide-react';
 
+const DEV_MODE = import.meta.env.DEV;
+
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -9,7 +11,7 @@ export function Auth() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, devBypass } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +116,17 @@ export function Auth() {
             {isSignUp ? 'Déjà un compte ? Connexion' : 'Pas encore de compte ? Inscription'}
           </button>
         </div>
+
+        {DEV_MODE && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={devBypass}
+              className="w-full bg-gray-600 text-white py-2 rounded-lg font-medium hover:bg-gray-700 transition text-sm"
+            >
+              Mode Dev - Bypass Login
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
