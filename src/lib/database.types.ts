@@ -40,6 +40,9 @@ export type Database = {
           photo_url: string | null;
           quality_score: number | null;
           calories_estimate: number | null;
+          protein_grams: number | null;
+          carbs_grams: number | null;
+          fat_grams: number | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -53,6 +56,9 @@ export type Database = {
           photo_url?: string | null;
           quality_score?: number | null;
           calories_estimate?: number | null;
+          protein_grams?: number | null;
+          carbs_grams?: number | null;
+          fat_grams?: number | null;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -66,6 +72,9 @@ export type Database = {
           photo_url?: string | null;
           quality_score?: number | null;
           calories_estimate?: number | null;
+          protein_grams?: number | null;
+          carbs_grams?: number | null;
+          fat_grams?: number | null;
           notes?: string | null;
           created_at?: string;
           updated_at?: string;

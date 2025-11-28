@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, TrendingUp, Flame, Share2 } from 'lucide-react';
+import { X, Calendar, Clock, TrendingUp, Flame, Share2, Edit } from 'lucide-react';
 
 interface Meal {
   id: string;
@@ -8,6 +8,9 @@ interface Meal {
   photo_url: string | null;
   quality_score: number | null;
   calories_estimate: number | null;
+  protein_grams: number | null;
+  carbs_grams: number | null;
+  fat_grams: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -15,6 +18,7 @@ interface Meal {
 interface MealDetailsProps {
   meal: Meal;
   onClose: () => void;
+  onEdit: (meal: Meal) => void;
   onShare: (meal: Meal) => void;
 }
 
@@ -25,7 +29,7 @@ const mealTypeLabels: Record<string, string> = {
   snack: 'Collation',
 };
 
-export function MealDetails({ meal, onClose, onShare }: MealDetailsProps) {
+export function MealDetails({ meal, onClose, onEdit, onShare }: MealDetailsProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -42,6 +46,12 @@ export function MealDetails({ meal, onClose, onShare }: MealDetailsProps) {
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-800">Détails du repas</h2>
           <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(meal)}
+              className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition"
+            >
+              <Edit className="w-5 h-5" />
+            </button>
             <button
               onClick={() => onShare(meal)}
               className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition"
@@ -85,38 +95,99 @@ export function MealDetails({ meal, onClose, onShare }: MealDetailsProps) {
             <p className="text-gray-700 leading-relaxed">{meal.description}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {meal.quality_score && (
-              <div className="bg-amber-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 text-amber-700 mb-2">
-                  <TrendingUp className="w-5 h-5" />
-                  <span className="font-semibold">Qualité</span>
-                </div>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <div
-                      key={star}
-                      className={`w-6 h-6 rounded-full ${
-                        star <= meal.quality_score! ? 'bg-amber-400' : 'bg-amber-200'
-                      }`}
-                    />
-                  ))}
-                </div>
+          {meal.quality_score && (
+            <div className="bg-amber-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-amber-700 mb-2">
+                <TrendingUp className="w-5 h-5" />
+                <span className="font-semibold">Qualité nutritionnelle</span>
               </div>
-            )}
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <div
+                    key={star}
+                    className={`w-6 h-6 rounded-full ${
+                      star <= meal.quality_score! ? 'bg-amber-400' : 'bg-amber-200'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-            {meal.calories_estimate && (
-              <div className="bg-orange-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 text-orange-700 mb-2">
-                  <Flame className="w-5 h-5" />
-                  <span className="font-semibold">Calories</span>
-                </div>
-                <p className="text-2xl font-bold text-orange-700">
-                  {meal.calories_estimate} <span className="text-sm font-normal">kcal</span>
-                </p>
+          {meal.calories_estimate && (
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6">
+              <div className="flex items-center gap-2 text-orange-700 mb-4">
+                <Flame className="w-5 h-5" />
+                <span className="font-semibold">Informations nutritionnelles</span>
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-xs text-gray-600 mb-1">Calories</p>
+                  <p className="text-xl font-bold text-orange-600">
+                    {meal.calories_estimate}
+                    <span className="text-xs font-normal ml-1">kcal</span>
+                  </p>
+                </div>
+
+                {meal.protein_grams !== null && (
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-600 mb-1">Protéines</p>
+                    <p className="text-xl font-bold text-blue-600">
+                      {meal.protein_grams}
+                      <span className="text-xs font-normal ml-1">g</span>
+                    </p>
+                  </div>
+                )}
+
+                {meal.carbs_grams !== null && (
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-600 mb-1">Glucides</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {meal.carbs_grams}
+                      <span className="text-xs font-normal ml-1">g</span>
+                    </p>
+                  </div>
+                )}
+
+                {meal.fat_grams !== null && (
+                  <div className="bg-white rounded-lg p-3">
+                    <p className="text-xs text-gray-600 mb-1">Lipides</p>
+                    <p className="text-xl font-bold text-amber-600">
+                      {meal.fat_grams}
+                      <span className="text-xs font-normal ml-1">g</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {(meal.protein_grams !== null || meal.carbs_grams !== null || meal.fat_grams !== null) && (
+                <div className="mt-4">
+                  <p className="text-xs text-gray-600 mb-2">Répartition des macros</p>
+                  <div className="flex gap-1 h-3 rounded-full overflow-hidden">
+                    {meal.protein_grams !== null && (
+                      <div
+                        className="bg-blue-500"
+                        style={{ width: `${(meal.protein_grams * 4 / (meal.calories_estimate || 1)) * 100}%` }}
+                      />
+                    )}
+                    {meal.carbs_grams !== null && (
+                      <div
+                        className="bg-green-500"
+                        style={{ width: `${(meal.carbs_grams * 4 / (meal.calories_estimate || 1)) * 100}%` }}
+                      />
+                    )}
+                    {meal.fat_grams !== null && (
+                      <div
+                        className="bg-amber-500"
+                        style={{ width: `${(meal.fat_grams * 9 / (meal.calories_estimate || 1)) * 100}%` }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {meal.notes && (
             <div>

@@ -7,6 +7,9 @@ interface DailyStats {
   date: string;
   avgQuality: number;
   totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
   mealCount: number;
 }
 
@@ -28,17 +31,20 @@ export function NutritionStats() {
 
     const { data } = await supabase
       .from('meals')
-      .select('date, quality_score, calories_estimate')
+      .select('date, quality_score, calories_estimate, protein_grams, carbs_grams, fat_grams')
       .gte('date', startDate.toISOString().split('T')[0])
       .order('date', { ascending: false });
 
     if (data) {
       const grouped = data.reduce((acc, meal) => {
         if (!acc[meal.date]) {
-          acc[meal.date] = { date: meal.date, qualities: [], calories: [], count: 0 };
+          acc[meal.date] = { date: meal.date, qualities: [], calories: [], protein: [], carbs: [], fat: [], count: 0 };
         }
         if (meal.quality_score) acc[meal.date].qualities.push(meal.quality_score);
         if (meal.calories_estimate) acc[meal.date].calories.push(meal.calories_estimate);
+        if (meal.protein_grams) acc[meal.date].protein.push(meal.protein_grams);
+        if (meal.carbs_grams) acc[meal.date].carbs.push(meal.carbs_grams);
+        if (meal.fat_grams) acc[meal.date].fat.push(meal.fat_grams);
         acc[meal.date].count++;
         return acc;
       }, {} as Record<string, any>);
@@ -49,6 +55,9 @@ export function NutritionStats() {
           ? day.qualities.reduce((a: number, b: number) => a + b, 0) / day.qualities.length
           : 0,
         totalCalories: day.calories.reduce((a: number, b: number) => a + b, 0),
+        totalProtein: day.protein.reduce((a: number, b: number) => a + b, 0),
+        totalCarbs: day.carbs.reduce((a: number, b: number) => a + b, 0),
+        totalFat: day.fat.reduce((a: number, b: number) => a + b, 0),
         mealCount: day.count,
       }));
 
@@ -66,6 +75,17 @@ export function NutritionStats() {
     const caloriesData = stats.filter(s => s.totalCalories > 0);
     if (caloriesData.length === 0) return 0;
     return caloriesData.reduce((a, b) => a + b.totalCalories, 0) / caloriesData.length;
+  };
+
+  const getAvgMacrosPerDay = () => {
+    const daysWithMacros = stats.filter(s => s.totalProtein > 0 || s.totalCarbs > 0 || s.totalFat > 0);
+    if (daysWithMacros.length === 0) return { protein: 0, carbs: 0, fat: 0 };
+
+    return {
+      protein: Math.round(daysWithMacros.reduce((a, b) => a + b.totalProtein, 0) / daysWithMacros.length),
+      carbs: Math.round(daysWithMacros.reduce((a, b) => a + b.totalCarbs, 0) / daysWithMacros.length),
+      fat: Math.round(daysWithMacros.reduce((a, b) => a + b.totalFat, 0) / daysWithMacros.length),
+    };
   };
 
   const getTotalMeals = () => {
@@ -92,6 +112,7 @@ export function NutritionStats() {
 
   const overallQuality = getOverallAvgQuality();
   const avgCalories = getAvgCaloriesPerDay();
+  const avgMacros = getAvgMacrosPerDay();
   const totalMeals = getTotalMeals();
   const trend = getTrend();
 
@@ -175,32 +196,76 @@ export function NutritionStats() {
         </div>
       </div>
 
+      {(avgMacros.protein > 0 || avgMacros.carbs > 0 || avgMacros.fat > 0) && (
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">Répartition moyenne des macros</h3>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                <span className="text-2xl font-bold text-blue-600">{avgMacros.protein}</span>
+              </div>
+              <p className="text-sm font-medium text-gray-700">Protéines (g)</p>
+              <p className="text-xs text-gray-500 mt-1">par jour</p>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-3">
+                <span className="text-2xl font-bold text-green-600">{avgMacros.carbs}</span>
+              </div>
+              <p className="text-sm font-medium text-gray-700">Glucides (g)</p>
+              <p className="text-xs text-gray-500 mt-1">par jour</p>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <span className="text-2xl font-bold text-amber-600">{avgMacros.fat}</span>
+              </div>
+              <p className="text-sm font-medium text-gray-700">Lipides (g)</p>
+              <p className="text-xs text-gray-500 mt-1">par jour</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-6">Historique</h3>
         <div className="space-y-4">
           {stats.map(day => (
-            <div key={day.date} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-              <div className="flex items-center gap-4">
-                <div className="text-center min-w-[60px]">
-                  <p className="text-sm font-medium text-gray-600">{formatDate(day.date)}</p>
-                  <p className="text-xs text-gray-500">{day.mealCount} repas</p>
+            <div key={day.date} className="py-3 border-b border-gray-100 last:border-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <div className="text-center min-w-[60px]">
+                    <p className="text-sm font-medium text-gray-600">{formatDate(day.date)}</p>
+                    <p className="text-xs text-gray-500">{day.mealCount} repas</p>
+                  </div>
+                  {day.avgQuality > 0 && (
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <div
+                          key={star}
+                          className={`w-4 h-4 rounded-full ${
+                            star <= Math.round(day.avgQuality) ? 'bg-amber-400' : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {day.avgQuality > 0 && (
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <div
-                        key={star}
-                        className={`w-4 h-4 rounded-full ${
-                          star <= Math.round(day.avgQuality) ? 'bg-amber-400' : 'bg-gray-200'
-                        }`}
-                      />
-                    ))}
+                {day.totalCalories > 0 && (
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-800">{day.totalCalories} kcal</p>
                   </div>
                 )}
               </div>
-              {day.totalCalories > 0 && (
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-800">{day.totalCalories} kcal</p>
+              {(day.totalProtein > 0 || day.totalCarbs > 0 || day.totalFat > 0) && (
+                <div className="flex gap-4 ml-16 text-xs">
+                  {day.totalProtein > 0 && (
+                    <span className="text-blue-600">P: {day.totalProtein}g</span>
+                  )}
+                  {day.totalCarbs > 0 && (
+                    <span className="text-green-600">G: {day.totalCarbs}g</span>
+                  )}
+                  {day.totalFat > 0 && (
+                    <span className="text-amber-600">L: {day.totalFat}g</span>
+                  )}
                 </div>
               )}
             </div>

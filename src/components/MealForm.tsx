@@ -3,20 +3,38 @@ import { X, Camera, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+interface Meal {
+  id: string;
+  date: string;
+  meal_type: string;
+  description: string;
+  photo_url: string | null;
+  quality_score: number | null;
+  calories_estimate: number | null;
+  protein_grams: number | null;
+  carbs_grams: number | null;
+  fat_grams: number | null;
+  notes: string | null;
+}
+
 interface MealFormProps {
   date: string;
+  meal?: Meal;
   onClose: () => void;
   onSave: () => void;
 }
 
-export function MealForm({ date, onClose, onSave }: MealFormProps) {
+export function MealForm({ date, meal, onClose, onSave }: MealFormProps) {
   const { user } = useAuth();
-  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
-  const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
-  const [qualityScore, setQualityScore] = useState<number>(3);
-  const [caloriesEstimate, setCaloriesEstimate] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>(meal?.meal_type as any || 'lunch');
+  const [description, setDescription] = useState(meal?.description || '');
+  const [notes, setNotes] = useState(meal?.notes || '');
+  const [qualityScore, setQualityScore] = useState<number>(meal?.quality_score || 3);
+  const [caloriesEstimate, setCaloriesEstimate] = useState(meal?.calories_estimate?.toString() || '');
+  const [proteinGrams, setProteinGrams] = useState(meal?.protein_grams?.toString() || '');
+  const [carbsGrams, setCarbsGrams] = useState(meal?.carbs_grams?.toString() || '');
+  const [fatGrams, setFatGrams] = useState(meal?.fat_grams?.toString() || '');
+  const [photoUrl, setPhotoUrl] = useState(meal?.photo_url || '');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,28 +53,54 @@ export function MealForm({ date, onClose, onSave }: MealFormProps) {
     const keywords = description.toLowerCase();
     let score = 3;
     let calories = 500;
+    let protein = 25;
+    let carbs = 60;
+    let fat = 15;
 
     if (keywords.includes('légumes') || keywords.includes('fruits') || keywords.includes('salade')) {
       score += 1;
       calories -= 100;
+      carbs += 10;
+      fat -= 5;
     }
     if (keywords.includes('frit') || keywords.includes('burger') || keywords.includes('pizza')) {
       score -= 1;
       calories += 200;
+      fat += 20;
+      carbs += 15;
     }
-    if (keywords.includes('poisson') || keywords.includes('poulet')) {
+    if (keywords.includes('poisson') || keywords.includes('poulet') || keywords.includes('viande')) {
       score += 0.5;
+      protein += 15;
     }
     if (keywords.includes('sucre') || keywords.includes('gâteau') || keywords.includes('bonbon')) {
       score -= 0.5;
       calories += 150;
+      carbs += 25;
+    }
+    if (keywords.includes('riz') || keywords.includes('pâtes') || keywords.includes('pain')) {
+      carbs += 20;
+      calories += 100;
     }
 
-    if (mealType === 'breakfast') calories = Math.round(calories * 0.7);
-    if (mealType === 'snack') calories = Math.round(calories * 0.4);
+    if (mealType === 'breakfast') {
+      calories = Math.round(calories * 0.7);
+      protein = Math.round(protein * 0.7);
+      carbs = Math.round(carbs * 0.8);
+      fat = Math.round(fat * 0.7);
+    }
+    if (mealType === 'snack') {
+      calories = Math.round(calories * 0.4);
+      protein = Math.round(protein * 0.5);
+      carbs = Math.round(carbs * 0.5);
+      fat = Math.round(fat * 0.5);
+    }
 
     setQualityScore(Math.max(1, Math.min(5, Math.round(score))));
     setCaloriesEstimate(String(Math.max(100, Math.min(1500, calories))));
+    setProteinGrams(String(Math.max(5, Math.min(150, protein))));
+    setCarbsGrams(String(Math.max(10, Math.min(200, carbs))));
+    setFatGrams(String(Math.max(5, Math.min(100, fat))));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,7 +109,7 @@ export function MealForm({ date, onClose, onSave }: MealFormProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('meals').insert({
+      const mealData = {
         user_id: user.id,
         date,
         meal_type: mealType,
@@ -73,8 +117,18 @@ export function MealForm({ date, onClose, onSave }: MealFormProps) {
         photo_url: photoUrl || null,
         quality_score: qualityScore,
         calories_estimate: caloriesEstimate ? parseInt(caloriesEstimate) : null,
+        protein_grams: proteinGrams ? parseInt(proteinGrams) : null,
+        carbs_grams: carbsGrams ? parseInt(carbsGrams) : null,
+        fat_grams: fatGrams ? parseInt(fatGrams) : null,
         notes: notes || null,
-      });
+      };
+
+      let error;
+      if (meal) {
+        ({ error } = await supabase.from('meals').update(mealData).eq('id', meal.id));
+      } else {
+        ({ error } = await supabase.from('meals').insert(mealData));
+      }
 
       if (error) throw error;
 
@@ -89,7 +143,7 @@ export function MealForm({ date, onClose, onSave }: MealFormProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800">Ajouter un repas</h2>
+          <h2 className="text-xl font-bold text-gray-800">{meal ? 'Modifier le repas' : 'Ajouter un repas'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
             <X className="w-5 h-5" />
           </button>
@@ -180,40 +234,85 @@ export function MealForm({ date, onClose, onSave }: MealFormProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Qualité nutritionnelle
-              </label>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map(score => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => setQualityScore(score)}
-                    className={`w-10 h-10 rounded-full transition ${
-                      qualityScore >= score
-                        ? 'bg-amber-400 hover:bg-amber-500'
-                        : 'bg-gray-200 hover:bg-gray-300'
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Qualité nutritionnelle
+            </label>
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map(score => (
+                <button
+                  key={score}
+                  type="button"
+                  onClick={() => setQualityScore(score)}
+                  className={`w-10 h-10 rounded-full transition ${
+                    qualityScore >= score
+                      ? 'bg-amber-400 hover:bg-amber-500'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {score}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <h3 className="font-semibold text-gray-800">Répartition des macros</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Calories
+                </label>
+                <input
+                  type="number"
+                  value={caloriesEstimate}
+                  onChange={(e) => setCaloriesEstimate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  placeholder="500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Protéines (g)
+                </label>
+                <input
+                  type="number"
+                  value={proteinGrams}
+                  onChange={(e) => setProteinGrams(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  placeholder="25"
+                />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Calories estimées
-              </label>
-              <input
-                type="number"
-                value={caloriesEstimate}
-                onChange={(e) => setCaloriesEstimate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-                placeholder="500"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Glucides (g)
+                </label>
+                <input
+                  type="number"
+                  value={carbsGrams}
+                  onChange={(e) => setCarbsGrams(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  placeholder="60"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lipides (g)
+                </label>
+                <input
+                  type="number"
+                  value={fatGrams}
+                  onChange={(e) => setFatGrams(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  placeholder="15"
+                />
+              </div>
             </div>
           </div>
 

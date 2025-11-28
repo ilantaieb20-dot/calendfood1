@@ -10,6 +10,10 @@ interface Meal {
   description: string;
   photo_url: string | null;
   quality_score: number | null;
+  calories_estimate: number | null;
+  protein_grams: number | null;
+  carbs_grams: number | null;
+  fat_grams: number | null;
 }
 
 interface CalendarProps {
@@ -124,6 +128,7 @@ export function Calendar({ onAddMeal, onSelectMeal }: CalendarProps) {
           return (
             <div
               key={day}
+              onClick={() => onAddMeal(dateStr)}
               className={`aspect-square border rounded-lg p-2 hover:shadow-md transition cursor-pointer ${
                 isToday ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
               }`}

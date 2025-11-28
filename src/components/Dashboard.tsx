@@ -19,6 +19,9 @@ interface Meal {
   photo_url: string | null;
   quality_score: number | null;
   calories_estimate: number | null;
+  protein_grams: number | null;
+  carbs_grams: number | null;
+  fat_grams: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -50,6 +53,13 @@ export function Dashboard() {
 
   const handleAddMeal = (date: string) => {
     setSelectedDate(date);
+    setSelectedMeal(null);
+    setShowMealForm(true);
+  };
+
+  const handleEditMeal = (meal: Meal) => {
+    setSelectedMeal(meal);
+    setSelectedDate(meal.date);
     setShowMealForm(true);
   };
 
@@ -148,15 +158,20 @@ export function Dashboard() {
       {showMealForm && (
         <MealForm
           date={selectedDate}
-          onClose={() => setShowMealForm(false)}
+          meal={selectedMeal || undefined}
+          onClose={() => {
+            setShowMealForm(false);
+            setSelectedMeal(null);
+          }}
           onSave={handleSaveMeal}
         />
       )}
 
-      {selectedMeal && (
+      {selectedMeal && !showMealForm && (
         <MealDetails
           meal={selectedMeal}
           onClose={() => setSelectedMeal(null)}
+          onEdit={handleEditMeal}
           onShare={handleShareMeal}
         />
       )}
